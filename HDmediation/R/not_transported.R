@@ -40,14 +40,19 @@ not_transported <- function(data, A, W, Z, M, Y, family, folds = 1, partial_tmle
         vv <- v(data, npsem, bb, hz, aprime, folds, learners_v)
         vvbar[, paste(param, collapse = "")] <- vbar(data, npsem, vv, astar, folds, learners_vbar)
 
+        wttrunc <- ifelse( (hm*ipwy)>100, 100, hm*ipwy)
+
         # EIF calculation
-        eify <- ipwy * hm / mean(ipwy * hm) * (Y - bb[, gl("b({aprime},Z,M,W)")])
+        eify <- wttrunc / mean(wttrunc) * (Y - bb[, gl("b({aprime},Z,M,W)")])
 
         ipwz <- (A == aprime) / gg[, gl("g({aprime}|w)")]
-        eifz <- ipwz / mean(ipwz) * (uu[, 1] - uubar[, 1])
+
+        wttruncipwz <- ifelse(ipwz>100, 100, ipwz)
+        eifz <- wttruncipwz / mean(wttruncipwz) * (uu[, 1] - uubar[, 1])
 
         ipwm <- (A == astar) / gg[, gl("g({astar}|w)")]
-        eifm <- ipwm / mean(ipwm) * (vv[, 1] - vvbar[, paste(param, collapse = "")])
+        wttruncipwm <- ifelse(ipwm>100, 100, ipwm)
+        eifm <- wttruncipwm / mean(wttruncipwm) * (vv[, 1] - vvbar[, paste(param, collapse = "")])
 
         eif <- rescale_y(eify + eifz + eifm + vvbar[, paste(param, collapse = "")], bounds$bounds)
         theta <- mean(eif)
@@ -74,6 +79,10 @@ not_transported <- function(data, A, W, Z, M, Y, family, folds = 1, partial_tmle
     ans$ci_indirect_high <- ci_indirect[2]
     ans$ci_direct_low <- ci_direct[1]
     ans$ci_direct_high <- ci_direct[2]
+
+    ans$eif11 <- eifs$`11`
+    ans$eif10 <- eifs$`10`
+    ans$eif00 <- eifs$`00`
 
     ans
 }
